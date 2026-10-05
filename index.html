@@ -1999,14 +1999,28 @@
 
         <div id="proResultsSection" class="hidden">
             <div class="section-box">
-                <h3>⚡ 增强优选结果 <span class="badge" id="proResultCount">0</span>
-                    <span id="proStatusLine" style="margin-left:10px;font-size:12px;color:var(--text-secondary);"></span>
+                <h3 style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>⚡ 增强优选结果 <span class="badge" id="proResultCount">0</span>
+                        <span id="proStatusLine" style="margin-left:10px;font-size:12px;color:var(--text-secondary);font-weight:normal;"></span>
+                    </span>
+                    <span class="table-actions">
+                        <button class="action-btn export-btn" onclick="openCopyModal('pro')">📋 一键复制</button>
+                        <button class="action-btn export-btn" onclick="openResultModal('pro')">📥 结果操作</button>
+                    </span>
                 </h3>
                 <div id="proMetaLine" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;"></div>
-                <div class="scroll-table">
+                <div class="scroll-table" style="max-height:520px;">
                     <table id="proTable">
                         <thead>
-                            <tr><th>#</th><th>地址</th><th>实测带宽</th><th>峰值速度</th><th>延迟</th><th>数据中心</th><th>国家</th><th>操作</th></tr>
+                            <tr>
+                                <th>IP</th>
+                                <th>端口</th>
+                                <th>实测带宽</th>
+                                <th>峰值速度</th>
+                                <th>数据中心</th>
+                                <th>落地区域</th>
+                                <th>延迟</th>
+                            </tr>
                         </thead>
                         <tbody></tbody>
                     </table>
@@ -4922,6 +4936,7 @@
             { key: 'lossRate', label: '丢包率' },
             { key: 'latency', label: '网络延迟' },
             { key: 'speed', label: '下载速度' },
+            { key: 'maxSpeed', label: '峰值速度' },
             { key: 'outboundIP', label: '出站IP' },
             { key: 'ipType', label: 'IP类型' },
             { key: 'originalInput', label: '原始输入' },
@@ -5123,7 +5138,8 @@
         }
 
         function getOfficialResultFieldOrder(mode = resultModalMode) {
-            return mode === 'test'
+            // 增强优选和官方详细测试一样，带宽/速度是核心字段
+            return mode === 'test' || mode === 'pro'
                 ? ['ip', 'port', 'latency', 'speed', 'dc', 'dcCountry', 'region', 'city']
                 : ['ip', 'port', 'latency', 'dc', 'dcCountry', 'region', 'city'];
         }
@@ -5560,7 +5576,7 @@
 
         function openCopyModal(mode) {
             copyModalMode = currentMode === 'nsb' ? 'nsb' : mode;
-            document.getElementById('copyModalTitle').textContent = copyModalMode === 'nsb' ? '非标结果一键复制' : (copyModalMode === 'test' ? '官方详细测试一键复制' : '官方扫描结果一键复制');
+            document.getElementById('copyModalTitle').textContent = copyModalMode === 'nsb' ? '非标结果一键复制' : (copyModalMode === 'test' ? '官方详细测试一键复制' : (copyModalMode === 'pro' ? '增强优选结果一键复制' : '官方扫描结果一键复制'));
             const filterField = document.getElementById('copyIPTypeFilterField');
             if (filterField) filterField.style.display = copyModalMode === 'nsb' ? '' : 'none';
             const filterSelect = document.getElementById('copyIPTypeFilter');
@@ -5719,8 +5735,27 @@
 
         function getCurrentResultRows(mode) {
             if (currentMode === 'nsb') return getNSBResultObjects();
+            if (mode === 'pro') return proResultItems.map(proResultToObject);
             if (mode === 'test') return testData.map(testResultToObject);
             return scanData.map(scanResultToObject).slice().sort(compareOfficialResultObjects);
+        }
+
+        // 增强优选结果项 -> 官方弹窗通用的行对象（字段键与官方一致）
+        function proResultToObject(r) {
+            const ip = r.ip || '';
+            const port = r.port ?? '';
+            return {
+                ip,
+                port: String(port),
+                ipport: `${ip}:${port}`,
+                dc: r.dataCenter || '',
+                dcCountry: r.country || '',
+                region: r.country || '',
+                city: '',
+                latency: `${r.latencyMs || 0} ms`,
+                speed: `${r.realBandwidth || 0} Mbps`,
+                maxSpeed: `${r.maxSpeed || 0} kB/s`,
+            };
         }
 
         function getCurrentExportRows(mode) {
@@ -6069,6 +6104,8 @@
         // ================= 增强优选（pro 模式） =================
         let proMeta = null;
         let proPreviewTimer = null;
+        // 增强优选最近一次结果（原始 ScanItem 数组），供一键复制/结果操作复用官方弹窗
+        let proResultItems = [];
 
         function startProTask() {
             const ipType = parseInt(document.getElementById('proIpType').value) || 4;
@@ -6168,32 +6205,22 @@
             document.getElementById('proMetaLine').textContent = metaBits.join(' ｜ ');
             document.getElementById('proHintLine').textContent = result.error || '';
 
-            items.forEach((it, idx) => {
-                const tr = document.createElement('tr');
-                const addr = it.address || '';
-                const tds = [
-                    idx + 1,
-                    addr,
-                    (it.realBandwidth || 0) + ' Mbps',
-                    (it.maxSpeed || 0) + ' kB/s',
-                    (it.latencyMs || 0) + ' ms',
-                    it.dataCenter || '-',
-                    it.country || '-',
-                ];
-                tds.forEach(v => {
-                    const td = document.createElement('td');
-                    td.textContent = v;
-                    tr.appendChild(td);
-                });
-                const opTd = document.createElement('td');
-                const btn = document.createElement('button');
-                btn.className = 'mini-action-btn';
-                btn.textContent = '📋 复制';
-                btn.onclick = (e) => copyToClipboard(addr, e);
-                opTd.appendChild(btn);
-                tr.appendChild(opTd);
-                tbody.appendChild(tr);
+            items.forEach((it) => {
+                const ip = it.ip || '';
+                const port = it.port ?? '';
+                const bw = (it.realBandwidth || 0) + ' Mbps';
+                const peak = (it.maxSpeed || 0) + ' kB/s';
+                tbody.insertAdjacentHTML('beforeend',
+                    `<tr><td>${renderIPCell(ip)}</td>` +
+                    `<td><span class="copy-ip" onclick="copyToClipboard('${port}', event)">${port === '' ? '-' : port}</span></td>` +
+                    `<td style="font-weight:600;">${bw}</td>` +
+                    `<td>${peak}</td>` +
+                    `<td>${escapeHTML(it.dataCenter || '-')}</td>` +
+                    `<td>${escapeHTML(it.country || '-')}</td>` +
+                    `<td>${it.latencyMs || 0} ms</td></tr>`);
             });
+            // 存一份原始结果，给一键复制/结果操作弹窗用
+            proResultItems = items;
 
             progressBar.style.width = '100%';
             progressBar.style.animation = 'none';
