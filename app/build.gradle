@@ -11,7 +11,8 @@ android {
         minSdk 26
         targetSdk 35
         // CI 从 tag（如 v1.5）算出 versionCode，保证每次发版递增，可覆盖安装
-        versionCode (System.getenv("ANDROID_VERSION_CODE") ?: "1").toInteger()
+        def vcStr = System.getenv("ANDROID_VERSION_CODE")
+        versionCode vcStr ? vcStr.toInteger() : 1
         versionName System.getenv("ANDROID_VERSION_NAME") ?: "1.0"
     }
 
