@@ -44,8 +44,13 @@ func runProTask(ctx context.Context, session *appSession, p startProTaskRequest)
 
 	session.sendWSMessage("log", "⚡ 增强优选引擎启动（带宽优选模式）")
 
-	result := pro.Scan(ctx, cfg, func(msg string) {
-		session.sendWSMessage("pro_progress", map[string]interface{}{"msg": msg})
+	result := pro.Scan(ctx, cfg, func(msg string, st pro.ProgressState) {
+		session.sendWSMessage("pro_progress", map[string]interface{}{
+			"msg":     msg,
+			"phase":   st.Phase,
+			"current": st.Current,
+			"total":   st.Total,
+		})
 	})
 
 	if ctx.Err() != nil && result != nil && !result.Cancelled {

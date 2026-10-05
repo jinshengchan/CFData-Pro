@@ -6178,6 +6178,23 @@
             }
         }
 
+        // 增强优选进度条：和官方优选同款 "扫描中 2320/6534（36%）"。
+        // 后端 tasks_pro.go 在 pro_progress 里带了结构化进度 {phase, current, total}。
+        function updateProProgressBar(d, text) {
+            const total = parseInt(d.total) || 0;
+            const current = parseInt(d.current) || 0;
+            const phaseLabel = { init: '准备中', rtt: 'RTT 测试中', recon: '扫描中', speed: '测速中', done: '完成' }[d.phase] || '扫描中';
+            if (total > 0) {
+                const p = Math.min(100, Math.round((current / total) * 100));
+                progressBar.style.width = p + '%';
+                progressBar.textContent = `${phaseLabel} ${current}/${total} (${p}%)`;
+            } else {
+                progressBar.style.width = '0%';
+                progressBar.textContent = text || phaseLabel;
+            }
+            progressBar.style.animation = 'stripe 1s linear infinite';
+        }
+
         function renderProResults(result) {
             const tbody = document.querySelector('#proTable tbody');
             tbody.innerHTML = '';
@@ -6600,11 +6617,11 @@
                     break;
                 }
                 case 'pro_progress': {
-                    const text = (msg.data && msg.data.msg) || '';
+                    const d = msg.data || {};
+                    const text = d.msg || '';
                     const statusLine = document.getElementById('proStatusLine');
                     if (statusLine) statusLine.textContent = text;
-                    progressBar.style.animation = 'stripe 1s linear infinite';
-                    progressBar.textContent = text;
+                    updateProProgressBar(d, text);
                     break;
                 }
                 case 'pro_complete':

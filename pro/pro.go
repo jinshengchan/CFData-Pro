@@ -38,7 +38,9 @@ type Config struct {
 
 // ProgressFunc 进度回调。调用在引擎内部 goroutine，直接转发到
 // CFData-Pro 的 WebSocket 推送即可（实现方注意线程安全）。
-type ProgressFunc func(msg string)
+// 第二个参数是触发本次回调时的结构化进度快照（phase/current/total），
+// 由 fireProgressHook 在调用回调前读取，保证文案和数字是同一时刻的。
+type ProgressFunc func(msg string, st ProgressState)
 
 const libVersion = "1.22"
 
@@ -149,8 +151,36 @@ func fireProgressHook(s string) {
 	fn := progressHook
 	progressHookMu.Unlock()
 	if fn != nil {
-		fn(s)
+		fn(s, GetProgressState())
 	}
+}
+
+// ProgressState 结构化进度，供前端画"扫描中 x/y（p%)"进度条。
+// 关键扫描节点用 setProgressState 同步快照，fireProgressHook 在触发回调时
+// 把快照一起带出去，保证文案和数字是同一时刻的。
+type ProgressState struct {
+	Phase   string `json:"phase"`   // init | rtt | recon | speed | done
+	Current int    `json:"current"` // 已完成数
+	Total   int    `json:"total"`   // 总数
+}
+
+var (
+	progressStateMu sync.Mutex
+	progressState   ProgressState
+)
+
+// setProgressState 记录结构化进度快照。
+func setProgressState(phase string, current, total int) {
+	progressStateMu.Lock()
+	progressState = ProgressState{Phase: phase, Current: current, Total: total}
+	progressStateMu.Unlock()
+}
+
+// GetProgressState 返回最近一次结构化进度快照。
+func GetProgressState() ProgressState {
+	progressStateMu.Lock()
+	defer progressStateMu.Unlock()
+	return progressState
 }
 
 // scanStarted 本次扫描启动时刻，用于进度文案附「已用时间」。
@@ -240,13 +270,14 @@ func Scan(ctx context.Context, cfg Config, onProgress ProgressFunc) (result *Sca
 	// 收尾时要把它带进结果，否则用户只会看到"未找到可用 IP"，
 	// 完全不知道是数据没下来。
 	var lastProgressMsg string
-	setProgressHook(func(msg string) {
+	setProgressHook(func(msg string, _ ProgressState) {
 		lastProgressMsg = msg
 		if onProgress != nil {
-			onProgress(msg)
+			onProgress(msg, GetProgressState())
 		}
 	})
 	defer setProgressHook(nil)
+	setProgressState("init", 0, 0)
 	markScanStart()
 	setProgress("正在初始化...")
 

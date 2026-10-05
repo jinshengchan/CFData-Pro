@@ -1307,6 +1307,7 @@ func runRTTTest(cands []candidateIP, ports []int, taskNum int, useTLS bool, sni 
 				// 每 5 个刷一次而不是 10：一批候选可能几百上千个，
 				// 10 的粒度在窄地区下间隔偏长，用户会以为卡住。
 				if current%5 == 0 || current == total {
+					setProgressState("rtt", current, total)
 					setScanProgress(fmt.Sprintf("RTT 测试进度: %d/%d", current, total))
 				}
 			}()
@@ -1782,6 +1783,7 @@ func speedTestRound(cands []RTTResult, useTLS bool, target int, wantCount int,
 				setScanProgress("预筛触发速率限制，改用已有结果继续")
 				break
 			}
+			setProgressState("speed", i+1, len(cands))
 			setScanProgress(fmt.Sprintf("快速预筛 %d/%d：%s:%d (延迟 %dms 抖动 %dms)",
 				i+1, len(cands), r.IP, r.Port, r.LatencyMs, r.JitterMs))
 			// target 传 0：预筛不做「达不到就放弃」的判断，
@@ -1841,6 +1843,7 @@ func speedTestRound(cands []RTTResult, useTLS bool, target int, wantCount int,
 			}
 		}
 
+		setProgressState("speed", i+1, len(finalists))
 		if wantCount > 1 {
 			setScanProgress(fmt.Sprintf("正在测速 %d/%d：%s:%d (已找到 %d/%d 个达标)",
 				i+1, len(finalists), r.IP, r.Port, pool.qualified(target), wantCount))
@@ -2173,6 +2176,7 @@ func cloudflareTest(ipType int, useTLS bool, taskNum int, speed int, filter scan
 				testIPs = getRandomIPv4s(sampled)
 			}
 
+			setProgressState("recon", sampler.used(), sampler.total())
 			setScanProgress(fmt.Sprintf("第 %d 轮·第 %d 批：%d 个子网 × %d IP × %d 端口 = %d 个候选（累计侦察 %d/%d 子网），RTT 测试中...",
 				round, batchNo, len(sampled), ipsPerSubnet, len(ports), len(testIPs)*len(ports),
 				sampler.used(), sampler.total()))
@@ -2184,6 +2188,7 @@ func cloudflareTest(ipType int, useTLS bool, taskNum int, speed int, filter scan
 			if len(rttResults) > 0 {
 				break
 			}
+			setProgressState("recon", sampler.used(), sampler.total())
 			if len(filter.Countries) > 0 {
 				setScanProgress(fmt.Sprintf("第 %d 轮·第 %d 批无可达/不在所选地区的 IP，继续下一批（累计侦察 %d/%d 子网）...",
 					round, batchNo, sampler.used(), sampler.total()))
