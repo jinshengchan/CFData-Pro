@@ -28,6 +28,14 @@ Cloudflare IP 优选工具：**CFData-WEB** 的平台 + **guanfang-youxuan** 的
 - IPv4 地址库精简、代理地区检测、Web 登录认证、后台任务（断线重连跟随）
 - CLI 全功能（参数与原版一致，`./cfdata-pro -h` 查看）
 
+## 下载
+
+到 [Releases](https://github.com/jinshengchan/CFData-Pro/releases) 页下载：
+
+- **Android**：`cfdata-pro-android-arm64.apk` —— 点开即用，内置本地服务，打开就是完整界面
+- **Linux / macOS / Windows**：`cfdata-pro-<系统>-<架构>` —— 命令行直接运行，浏览器打开 `http://127.0.0.1:13335`
+- **Termux**：下载 `cfdata-pro-linux-arm64`，`chmod +x` 后运行
+
 ## 构建
 
 ```bash

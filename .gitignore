@@ -14,3 +14,9 @@ cfdata-config.json
 
 # 推送脚本状态
 .push_state.json
+
+# Android 构建
+app/build/
+.gradle/
+local.properties
+app/src/main/jniLibs/arm64-v8a/libcfdatapro.so

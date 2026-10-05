@@ -118,9 +118,80 @@ jobs:
           name: asset-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
           path: release_assets/*
 
+  android-apk:
+    name: Android APK
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.10.2"
+
+      - name: Set version
+        id: set-version
+        run: |
+          version="${{ github.event.inputs.version }}"
+          if [ -z "$version" ]; then
+            version="${{ github.ref_name }}"
+          fi
+          if [ -z "$version" ] || [ "$version" = "main" ]; then
+            version="dev-$(git rev-parse --short HEAD)"
+          fi
+          echo "VERSION=$version" >> $GITHUB_OUTPUT
+
+      - name: Build Android backend
+        env:
+          GOOS: android
+          GOARCH: arm64
+          CGO_ENABLED: "0"
+        run: |
+          go build -trimpath -ldflags "-s -w -X main.appVersion=${{ steps.set-version.outputs.VERSION }}" -o app/src/main/jniLibs/arm64-v8a/libcfdatapro.so .
+
+      - name: Build debug APK
+        env:
+          ANDROID_VERSION_NAME: ${{ steps.set-version.outputs.VERSION }}
+        run: gradle assembleDebug --no-daemon
+
+      - name: Verify APK contains backend
+        run: |
+          unzip -l app/build/outputs/apk/debug/app-debug.apk | tee apk-contents.txt
+          grep -q "lib/arm64-v8a/libcfdatapro.so" apk-contents.txt
+
+      - name: Prepare APK asset
+        run: |
+          mkdir -p release_assets
+          cp app/build/outputs/apk/debug/app-debug.apk release_assets/cfdata-pro-android-arm64.apk
+          cd release_assets
+          sha256sum cfdata-pro-android-arm64.apk | awk '{print $1}' > cfdata-pro-android-arm64.apk.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-android-arm64-apk
+          path: release_assets/*
+
   release:
     name: Release
-    needs: build
+    needs: [build, android-apk]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -148,6 +219,7 @@ jobs:
 
             - ☁️ 官方优选 / 📂 非标优选 / ⚡ 增强优选（带宽优选）
             - 支持 Linux / macOS / Windows（amd64、arm64）
+            - Android APK（arm64，点开即用，内置本地服务）
 
             构建方式：GitHub Actions 自动构建。
           files: artifacts/*
