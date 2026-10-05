@@ -235,7 +235,17 @@ func Scan(ctx context.Context, cfg Config, onProgress ProgressFunc) (result *Sca
 	}()
 
 	useContext(ctx)
-	setProgressHook(onProgress)
+	// 包装进度回调：记住最后一条进度消息。数据文件缺失/下载失败时，
+	// 引擎只通过进度消息说出真实原因（"下载 IP 列表失败: ..."），
+	// 收尾时要把它带进结果，否则用户只会看到"未找到可用 IP"，
+	// 完全不知道是数据没下来。
+	var lastProgressMsg string
+	setProgressHook(func(msg string) {
+		lastProgressMsg = msg
+		if onProgress != nil {
+			onProgress(msg)
+		}
+	})
 	defer setProgressHook(nil)
 	markScanStart()
 	setProgress("正在初始化...")
@@ -253,6 +263,9 @@ func Scan(ctx context.Context, cfg Config, onProgress ProgressFunc) (result *Sca
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		return &ScanResult{Error: "创建缓存目录失败：" + err.Error()}
 	}
+	// 内置数据种子：首次运行或数据文件丢失时先用内置版本，
+	// 避免"点开始就完成"（0 子网 0 轮 0 秒）
+	ensureSeeded()
 
 	// 指定 IP 段要在任何耗时操作之前解析：填错了立刻报错，
 	// 不要让用户等到下载完数据、跑完侦察才看到「格式不对」
@@ -363,6 +376,12 @@ func Scan(ctx context.Context, cfg Config, onProgress ProgressFunc) (result *Sca
 		if out.UsingCustomRanges {
 			result.Error += "。这些是你指定的 IP 段，请确认它们确实是 Cloudflare 的段且在你的网络下可达；也可以清空 IP 段改用官方列表"
 		}
+		// 一个子网都没测就结束了：大概率是数据文件没下来。引擎的真实原因
+		// 只写在进度消息里，这里把它摆到台面上，而不是让用户对着
+		// "未找到可用 IP" 猜。
+		if out.PoolSize == 0 && out.Tested == 0 && isDataFailureMsg(lastProgressMsg) {
+			result.Error = "扫描未能开始：" + lastProgressMsg
+		}
 		setProgress(fmt.Sprintf("扫描结束，用时 %d 秒", elapsed))
 
 	case out.BelowTarget:
@@ -407,6 +426,12 @@ func Scan(ctx context.Context, cfg Config, onProgress ProgressFunc) (result *Sca
 	}
 
 	return result
+}
+
+// isDataFailureMsg 判断一条进度消息是否在说数据文件出了问题
+// （下载失败、读取失败、列表为空）。用于收尾时把真实原因摆到台面上。
+func isDataFailureMsg(msg string) bool {
+	return strings.Contains(msg, "失败") || strings.Contains(msg, "为空")
 }
 
 // PreviewResult IP 段预检结果（结构体版，供 WS 直接序列化）。
