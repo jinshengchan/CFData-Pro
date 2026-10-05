@@ -4,12 +4,19 @@ import (
 	"context"
 	"errors"
 	"net"
+	"runtime"
 	"strings"
 	"time"
 )
 
 func initCustomResolver() {
 	servers := normalizeDNSServers(customDNSServer)
+	if len(servers) == 0 && runtime.GOOS == "android" {
+		// Android 上后端是 CGO_ENABLED=0 的纯 Go 编译，读不到系统 DNS，
+		// 所有域名解析失败（原版 gomobile 用 cgo，无此问题）。
+		// 用户没配自定义 DNS 时，用硬编码公共 DNS 兜底。
+		servers = []string{"223.5.5.5:53", "119.29.29.29:53", "1.1.1.1:53"}
+	}
 	if len(servers) == 0 {
 		customResolver = nil
 		return

@@ -558,7 +558,86 @@ func dataPath(name string) string {
 	return filepath.Join(dataDir, name)
 }
 
-var downloadClient = &http.Client{Timeout: 8 * time.Second}
+var downloadClient = &http.Client{Transport: downloadTransport, Timeout: 30 * time.Second}
+
+// fallbackDNSServers: Android 上 CGO_ENABLED=0 时，Go 内置解析器读不到系统 DNS，
+// 所有域名解析都会失败（原版 gomobile 用 cgo，走系统解析，无此问题）。
+// 这里用硬编码公共 DNS 做纯 Go 解析兜底；IP 直连的扫描不受影响。
+var fallbackDNSServers = []string{"223.5.5.5:53", "119.29.29.29:53", "1.1.1.1:53"}
+
+var fallbackResolver = &net.Resolver{
+	PreferGo: true,
+	Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+		d := net.Dialer{Timeout: 5 * time.Second}
+		var err error
+		var c net.Conn
+		for _, srv := range fallbackDNSServers {
+			c, err = d.DialContext(ctx, "udp", srv)
+			if err == nil {
+				return c, nil
+			}
+			c, err = d.DialContext(ctx, "tcp", srv)
+			if err == nil {
+				return c, nil
+			}
+		}
+		return nil, err
+	},
+}
+
+func pickIP(ips []net.IP) string {
+	for _, ip := range ips {
+		if ip.To4() != nil {
+			return ip.String()
+		}
+	}
+	return ips[0].String()
+}
+
+// ResolveIP 解析域名；IP 字面量直接返回。
+// 先走硬编码公共 DNS（Android 无 cgo 时系统解析不可用，这是主路径），
+// 失败再试系统解析作为备选。
+func ResolveIP(host string) (string, error) {
+	if ip := net.ParseIP(host); ip != nil {
+		return host, nil
+	}
+	if ips, err := lookupViaFallback(host); err == nil && len(ips) > 0 {
+		return pickIP(ips), nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host); err == nil && len(ips) > 0 {
+		return pickIP(ips), nil
+	}
+	return "", fmt.Errorf("resolve %s failed", host)
+}
+
+func lookupViaFallback(host string) ([]net.IP, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	return fallbackResolver.LookupIP(ctx, "ip", host)
+}
+
+// DialContextWithFallbackDNS 先经兜底 DNS 解析再建连，供 http.Transport 使用。
+// SNI/证书校验不受影响：Transport 仍用 URL 里的域名做 SNI。
+func DialContextWithFallbackDNS(ctx context.Context, network, addr string) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, err
+	}
+	ip, err := ResolveIP(host)
+	if err != nil {
+		return nil, err
+	}
+	d := net.Dialer{Timeout: 10 * time.Second}
+	return d.DialContext(ctx, network, net.JoinHostPort(ip, port))
+}
+
+var downloadTransport = &http.Transport{
+	DialContext:           DialContextWithFallbackDNS,
+	TLSHandshakeTimeout:   10 * time.Second,
+	ResponseHeaderTimeout: 15 * time.Second,
+}
 
 func timeNow() time.Time {
 	return time.Now()
