@@ -1654,6 +1654,18 @@
             font-weight: 600;
         }
         .pseg button:disabled { opacity: .45; cursor: not-allowed; }
+        /* 盖掉 .controls button 的 width:100%/display:block，否则筹码会一行一个 */
+        #proControls .pseg button,
+        #proControls .pchips button {
+            display: inline-block;
+            width: auto;
+            margin-top: 0;
+            flex: 0 0 auto;
+        }
+        #proControls .pseg button {
+            flex: 1 1 0;
+            white-space: nowrap;
+        }
         #proControls input[type=number] {
             width: 92px;
             background: var(--card-bg);
@@ -1701,6 +1713,25 @@
         .phint.sub { margin-top: 0; }
         .phint.bad { color: var(--error-color); }
         .ptoggle { font-size: 13px; color: var(--primary-color); cursor: pointer; font-weight: 600; }
+        #proControls h3 > span:first-child {
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+        #btnProUpdateData {
+            display: inline-block;
+            width: auto;
+            margin-top: 0;
+            flex: 0 0 auto;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #btnProUpdateData:disabled { opacity: .45; cursor: not-allowed; }
     </style>
     <script>
     (function(){
@@ -1984,7 +2015,7 @@
                 <div class="section-box">
                     <h3 style="display:flex;justify-content:space-between;align-items:center;">
                         <span>扫描配置</span>
-                        <button class="action-btn export-btn" id="btnProUpdateData" onclick="updateProData()">更新数据</button>
+                        <button id="btnProUpdateData" onclick="updateProData()">更新数据</button>
                     </h3>
                     <div class="prow">
                         <label class="plbl">IP 协议</label>
