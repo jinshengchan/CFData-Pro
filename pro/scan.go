@@ -575,11 +575,58 @@ func getURLContent(targetURL string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return "", fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 32*1024*1024))
 	if err != nil {
 		return "", err
 	}
+	if len(strings.TrimSpace(string(body))) == 0 {
+		return "", fmt.Errorf("返回内容为空")
+	}
 	return string(body), nil
+}
+
+// 数据源：主源 baipiao.eu.org，备用为自建 jsDelivr 镜像。
+// 主源在部分手机网络下连不上（v1.9 反馈），备用镜像保证更新能完成。
+var dataSourceChains = map[string][]string{
+	"url": {
+		"https://www.baipiao.eu.org/cloudflare/url",
+		"https://cdn.jsdelivr.net/gh/jinshengchan/cfdata-mirror@main/url.txt",
+	},
+	"ips-v4": {
+		"https://www.baipiao.eu.org/cloudflare/ips-v4",
+		"https://cdn.jsdelivr.net/gh/jinshengchan/cfdata-mirror@main/ips-v4.txt",
+	},
+	"ips-v6": {
+		"https://www.baipiao.eu.org/cloudflare/ips-v6",
+		"https://cdn.jsdelivr.net/gh/jinshengchan/cfdata-mirror@main/ips-v6.txt",
+	},
+	"locations": {
+		"https://www.baipiao.eu.org/cloudflare/locations",
+		"https://cdn.jsdelivr.net/gh/jinshengchan/cfdata-mirror@main/locations.json",
+	},
+}
+
+// getURLContentFirst 依次尝试数据源链，返回第一个成功（2xx 且内容非空）的。
+func getURLContentFirst(key string) (string, error) {
+	urls := dataSourceChains[key]
+	var lastErr error
+	for i, u := range urls {
+		if i > 0 {
+			setProgress("主源连接失败，尝试备用镜像...")
+		}
+		body, err := getURLContent(u)
+		if err == nil {
+			return body, nil
+		}
+		lastErr = err
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("无可用数据源")
+	}
+	return "", lastErr
 }
 
 func getFileContent(filename string) (string, error) {
@@ -872,7 +919,7 @@ func downloadAllData(needIPList bool) {
 			return
 		}
 		setProgress("正在下载测速 URL...")
-		content, err := getURLContent("https://www.baipiao.eu.org/cloudflare/url")
+		content, err := getURLContentFirst("url")
 		if err != nil {
 			// 有旧文件就先用着：拿过期数据能扫，拿不到数据只能干等
 			if !fileExists(urlFilename) {
@@ -915,9 +962,9 @@ func downloadAllData(needIPList bool) {
 		setProgress("测速地址格式异常，已改用内置备用地址")
 	}
 
-	for _, item := range []struct{ file, url string }{
-		{"ips-v4.txt", "https://www.baipiao.eu.org/cloudflare/ips-v4"},
-		{"ips-v6.txt", "https://www.baipiao.eu.org/cloudflare/ips-v6"},
+	for _, item := range []struct{ file, key string }{
+		{"ips-v4.txt", "ips-v4"},
+		{"ips-v6.txt", "ips-v6"},
 	} {
 		if !needIPList {
 			break
@@ -928,7 +975,7 @@ func downloadAllData(needIPList bool) {
 		fp := dataPath(item.file)
 		if !dataFresh(fp) {
 			setProgress("正在下载 IP 列表: " + item.file)
-			c, err := getURLContent(item.url)
+			c, err := getURLContentFirst(item.key)
 			if err != nil {
 				// 数据源挂了但本地有旧副本时不该让扫描直接失败
 				if !fileExists(fp) {
@@ -967,20 +1014,11 @@ func downloadAllData(needIPList bool) {
 // 单独拆出来是为了让 downloadAllData 的「过期则更新、失败则用旧副本」
 // 逻辑对三种数据文件保持一致。
 func fetchLocations(fp string) error {
-	req, _ := http.NewRequestWithContext(scanCtx(), "GET", "https://www.baipiao.eu.org/cloudflare/locations", nil)
-	resp, err := downloadClient.Do(req)
+	body, err := getURLContentFirst("locations")
 	if err != nil {
 		return err
 	}
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 32*1024*1024))
-	resp.Body.Close()
-	if err != nil {
-		return err
-	}
-	if len(strings.TrimSpace(string(body))) == 0 {
-		return fmt.Errorf("返回内容为空")
-	}
-	return saveToFile(fp, string(body))
+	return saveToFile(fp, body)
 }
 
 // initLocations 初始化数据中心位置信息

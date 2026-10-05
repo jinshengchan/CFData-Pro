@@ -2,6 +2,8 @@ package pro
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -41,3 +43,56 @@ func (roundTripFail) RoundTrip(*http.Request) (*http.Response, error) {
 type urlError struct{ msg string }
 
 func (e *urlError) Error() string { return e.msg }
+
+type roundTripSwitch struct {
+	failHost string
+	body     string
+}
+
+func (r roundTripSwitch) RoundTrip(req *http.Request) (*http.Response, error) {
+	if strings.Contains(req.URL.Host, r.failHost) {
+		return nil, fmt.Errorf("dial tcp: no such host")
+	}
+	return &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(strings.NewReader(r.body)),
+		Header:     make(http.Header),
+		Request:    req,
+	}, nil
+}
+
+// 主源挂掉时应自动切到备用镜像，而不是直接报错。
+func TestGetURLContentFirstFallback(t *testing.T) {
+	oldClient := downloadClient
+	oldChains := dataSourceChains
+	defer func() { downloadClient = oldClient; dataSourceChains = oldChains }()
+
+	downloadClient = &http.Client{Transport: roundTripSwitch{failHost: "primary.invalid", body: "mirror-ok"}}
+	dataSourceChains = map[string][]string{
+		"t": {"https://primary.invalid/x", "https://mirror.invalid/x"},
+	}
+	body, err := getURLContentFirst("t")
+	if err != nil {
+		t.Fatalf("fallback err: %v", err)
+	}
+	if body != "mirror-ok" {
+		t.Fatalf("body = %q", body)
+	}
+}
+
+// 非 2xx 响应应视为失败，触发备用源（而不是把错误页存成数据文件）。
+func TestGetURLContentRejectsNon2xx(t *testing.T) {
+	oldClient := downloadClient
+	defer func() { downloadClient = oldClient }()
+	downloadClient = &http.Client{Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: 403, Body: io.NopCloser(strings.NewReader("<html>blocked</html>")),
+			Header: make(http.Header), Request: req}, nil
+	})}
+	if _, err := getURLContent("https://primary.invalid/x"); err == nil {
+		t.Fatal("expected error for HTTP 403")
+	}
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }

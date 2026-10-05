@@ -227,12 +227,17 @@ jobs:
           pattern: asset-*
           merge-multiple: true
 
-      # 更新日志：优先取 tag 信息正文（打 tag 时写），取不到则用相邻 tag 之间的提交记录
+      # 更新日志：优先取 annotated tag 信息正文（打 tag 时写），取不到则用相邻 tag 之间的提交记录。
+      # 注意：CI 里 tag 可能是轻量 tag（此时 %(contents) 取到的是 commit message），
+      # 必须先确认是 annotated tag 才用正文；commit message 尾部的 (original: <sha>) 标记要过滤掉。
       - name: Read release notes
         id: notes
         run: |
-          msg=$(git tag -l --format='%(contents)' "${{ github.ref_name }}")
-          notes=$(printf '%s\n' "$msg" | tail -n +3 | sed '/./,$!d')
+          notes=""
+          if [ "$(git cat-file -t "refs/tags/${{ github.ref_name }}" 2>/dev/null)" = "tag" ]; then
+            msg=$(git for-each-ref --format='%(contents)' "refs/tags/${{ github.ref_name }}")
+            notes=$(printf '%s\n' "$msg" | tail -n +3 | sed '/./,$!d')
+          fi
           if [ -z "$notes" ]; then
             prev=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || true)
             if [ -n "$prev" ]; then
@@ -241,6 +246,7 @@ jobs:
               notes=$(git log --pretty=format:'- %s' "${{ github.ref_name }}")
             fi
           fi
+          notes=$(printf '%s\n' "$notes" | grep -v '^(original: [0-9a-f]\{40\})$' | sed '/./,$!d' || true)
           {
             echo "NOTES<<EOF"
             echo "$notes"
