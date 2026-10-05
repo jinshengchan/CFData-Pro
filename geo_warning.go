@@ -34,7 +34,7 @@ func detectCloudflareTraceCountryOnce(ctx context.Context) (string, bool, string
 	if err != nil {
 		return "", false, err.Error()
 	}
-	req.Header.Set("User-Agent", "CFData-WEB/"+appVersion)
+	req.Header.Set("User-Agent", "CFData-Pro/"+appVersion)
 	resp, err := upstreamHTTPClient.Do(req)
 	if err != nil {
 		recordDebugError("proxy_country_check", err.Error())

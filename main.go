@@ -25,12 +25,12 @@ type latestReleaseInfo struct {
 }
 
 func getLatestRelease(ctx context.Context) (latestReleaseInfo, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/repos/PoemMisty/CFData-WEB/releases/latest", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/repos/jinshengchan/CFData-Pro/releases/latest", nil)
 	if err != nil {
 		return latestReleaseInfo{}, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "CFData-WEB/"+appVersion)
+	req.Header.Set("User-Agent", "CFData-Pro/"+appVersion)
 	ctx, cancel := context.WithTimeout(ctx, 6*time.Second)
 	defer cancel()
 	resp, err := upstreamHTTPClient.Do(req.WithContext(ctx))

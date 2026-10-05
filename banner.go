@@ -2,8 +2,8 @@ package main
 
 import "fmt"
 
-const bannerLogo = "ＣＦＤＡＴＡ-ＷＥＢ"
-const bannerAuthor = "by:GitHub/PoemMisty"
+const bannerLogo = "ＣＦＤＡＴＡ-ＰＲＯ"
+const bannerAuthor = "by:GitHub/jinshengchan"
 
 func printBanner() {
 	fmt.Println()
