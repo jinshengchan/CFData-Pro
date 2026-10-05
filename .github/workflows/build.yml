@@ -227,6 +227,26 @@ jobs:
           pattern: asset-*
           merge-multiple: true
 
+      # 更新日志：优先取 tag 信息正文（打 tag 时写），取不到则用相邻 tag 之间的提交记录
+      - name: Read release notes
+        id: notes
+        run: |
+          msg=$(git tag -l --format='%(contents)' "${{ github.ref_name }}")
+          notes=$(printf '%s\n' "$msg" | tail -n +3 | sed '/./,$!d')
+          if [ -z "$notes" ]; then
+            prev=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || true)
+            if [ -n "$prev" ]; then
+              notes=$(git log --pretty=format:'- %s' "$prev..${{ github.ref_name }}")
+            else
+              notes=$(git log --pretty=format:'- %s' "${{ github.ref_name }}")
+            fi
+          fi
+          {
+            echo "NOTES<<EOF"
+            echo "$notes"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -235,11 +255,17 @@ jobs:
           body: |
             ## CFData-Pro ${{ github.ref_name }}
 
+            ### 更新日志
+
+            ${{ steps.notes.outputs.NOTES }}
+
+            ---
+
             Cloudflare IP 优选工具：CFData-WEB 平台 + guanfang-youxuan 带宽优选引擎。
 
             - ☁️ 官方优选 / 📂 非标优选 / ⚡ 增强优选（带宽优选）
             - 支持 Linux / macOS / Windows（amd64、arm64）
-            - Android APK（arm64，点开即用，内置本地服务）
+            - Android APK（arm64，点开即用，内置本地服务；v1.5 起固定签名，可覆盖安装）
 
             构建方式：GitHub Actions 自动构建。
           files: artifacts/*
