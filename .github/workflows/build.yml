@@ -228,14 +228,17 @@ jobs:
           merge-multiple: true
 
       # 更新日志：优先取 annotated tag 信息正文（打 tag 时写），取不到则用相邻 tag 之间的提交记录。
-      # 注意：CI 里 tag 可能是轻量 tag（此时 %(contents) 取到的是 commit message），
-      # 必须先确认是 annotated tag 才用正文；commit message 尾部的 (original: <sha>) 标记要过滤掉。
+      # 注意：CI 检出后 tag 经常是轻量形式（此时 git 取到的是 commit message），
+      # 所以正文走 GitHub API 直接读 tag 对象；commit message 尾部的 (original: <sha>) 标记要过滤掉。
       - name: Read release notes
         id: notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           notes=""
-          if [ "$(git cat-file -t "refs/tags/${{ github.ref_name }}" 2>/dev/null)" = "tag" ]; then
-            msg=$(git for-each-ref --format='%(contents)' "refs/tags/${{ github.ref_name }}")
+          tag_obj=$(gh api "repos/${{ github.repository }}/git/refs/tags/${{ github.ref_name }}" --jq '.object' 2>/dev/null || true)
+          if [ "$(printf '%s' "$tag_obj" | jq -r '.type' 2>/dev/null)" = "tag" ]; then
+            msg=$(gh api "repos/${{ github.repository }}/git/tags/$(printf '%s' "$tag_obj" | jq -r '.sha')" --jq '.message' 2>/dev/null || true)
             notes=$(printf '%s\n' "$msg" | tail -n +3 | sed '/./,$!d')
           fi
           if [ -z "$notes" ]; then
