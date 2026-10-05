@@ -5,11 +5,12 @@ release_assets/
 *.exe
 *.apk
 
-# 运行时下载的数据缓存（启动时自动下载）
-ips-v4.txt
-ips-v6.txt
-locations.json
-url.txt
+# 运行时下载的数据缓存（启动时自动下载），只忽略仓库根目录的；
+# pro/seeddata/ 下的是编译进二进制的内置种子，必须跟踪
+/ips-v4.txt
+/ips-v6.txt
+/locations.json
+/url.txt
 cfdata-config.json
 
 # 推送脚本状态
