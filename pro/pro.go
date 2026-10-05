@@ -548,8 +548,17 @@ func UpdateDataFiles(ctx context.Context, cacheDir string) string {
 	}
 
 	setProgress("正在更新数据...")
+	// 先用内置种子兜底：任何情况下缓存不为空，下载失败也不丢数据。
+	// （之前是先删文件再下载，下载失败就导致缓存全空、扫描不可用）
+	ensureSeeded()
+	// 把文件时间戳改旧，强制 downloadAllData 重新下载；
+	// 下载失败时它原有的「暂用本地副本」逻辑会保留旧文件
+	old := time.Now().Add(-dataMaxAge - time.Hour)
 	for _, f := range dataFiles {
-		removeFile(dataPath(f))
+		fp := dataPath(f)
+		if fileExists(fp) {
+			_ = os.Chtimes(fp, old, old)
+		}
 	}
 	initLocations(true)
 
@@ -561,15 +570,25 @@ func UpdateDataFiles(ctx context.Context, cacheDir string) string {
 		setProgress(msg)
 		return msg
 	}
-	var missing []string
+	// 下载失败时文件仍在（种子或旧副本）：如实告知，不要报"缺少文件"
+	var missing, stale []string
 	for _, f := range dataFiles {
-		if !fileExists(dataPath(f)) {
+		fp := dataPath(f)
+		if !fileExists(fp) {
 			missing = append(missing, f)
+		} else if !dataFresh(fp) {
+			stale = append(stale, f)
 		}
 	}
 	if len(missing) > 0 {
 		m := fmt.Sprintf("数据更新未完成，缺少 %s（检查网络后重试）",
 			strings.Join(missing, "、"))
+		setProgress(m)
+		return m
+	}
+	if len(stale) > 0 {
+		m := fmt.Sprintf("数据下载失败（%s），已保留本地数据，扫描可正常使用",
+			strings.Join(stale, "、"))
 		setProgress(m)
 		return m
 	}
