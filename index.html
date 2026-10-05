@@ -304,8 +304,7 @@
         }
 
         #officialControls,
-        #nsbControls,
-        #proControls {
+        #nsbControls {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
@@ -1530,8 +1529,7 @@
             }
 
             #officialControls,
-            #nsbControls,
-            #proControls {
+            #nsbControls {
                 grid-template-columns: 1fr;
             }
 
@@ -1609,6 +1607,100 @@
         *:focus {
             outline: none;
         }
+
+        /* ===== 增强优选扫描配置（对齐原版 guanfang-youxuan 布局） ===== */
+        #proControls {
+            display: block;
+        }
+        #proControls .section-box {
+            margin-bottom: 0;
+        }
+        .prow {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .prow:last-child { margin-bottom: 0; }
+        .prow.col {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label.plbl {
+            font-size: 13px;
+            color: var(--text-secondary);
+            min-width: 76px;
+        }
+        .pseg {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 9px;
+            overflow: hidden;
+        }
+        .pseg button {
+            background: transparent;
+            border: 0;
+            color: var(--text-secondary);
+            padding: 8px 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: .15s;
+        }
+        .pseg button.on {
+            background: var(--primary-color);
+            color: #fff;
+            font-weight: 600;
+        }
+        .pseg button:disabled { opacity: .45; cursor: not-allowed; }
+        #proControls input[type=number] {
+            width: 92px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+        .punit { font-size: 13px; color: var(--text-secondary); }
+        .pchips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .pchips button {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 16px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .pchips button.on {
+            background: var(--primary-color);
+            color: #fff;
+            font-weight: 600;
+            border-color: var(--primary-color);
+        }
+        .pchips button:disabled { opacity: .45; cursor: not-allowed; }
+        #proControls input[type=text].pwide,
+        #proControls textarea.pwide {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+        #proControls textarea.pwide {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            resize: vertical;
+            line-height: 1.5;
+        }
+        .phint { font-size: 11px; color: var(--text-secondary); margin-top: 8px; line-height: 1.6; }
+        .phint.sub { margin-top: 0; }
+        .phint.bad { color: var(--error-color); }
+        .ptoggle { font-size: 13px; color: var(--primary-color); cursor: pointer; font-weight: 600; }
     </style>
     <script>
     (function(){
@@ -1889,70 +1981,85 @@
             </div>
 
             <div id="proControls" class="hidden">
-                <div class="control-title">
-                    <span>增强参数</span>
-                    <span style="font-size:12px;color:var(--text-secondary);">带宽优选引擎：测完所有候选再按实测速度排序，不只看延迟</span>
-                </div>
-                <div class="option-item">
-                    <span class="label">🌐 IP 类型</span>
-                    <select id="proIpType">
-                        <option value="4">IPv4</option>
-                        <option value="6">IPv6</option>
-                    </select>
-                </div>
-                <div class="option-item">
-                    <span class="label" title="TLS 端口走 HTTPS 握手">🔒 TLS</span>
-                    <select id="proUseTLS">
-                        <option value="on" selected>开启</option>
-                        <option value="off">关闭</option>
-                    </select>
-                </div>
-                <div class="option-item">
-                    <span class="label" title="期望带宽，低于此值会返回最优结果并注明未达标">🎯 期望带宽</span>
-                    <input id="proBandwidth" type="number" value="1" placeholder="默认 1 Mbps">
-                </div>
-                <div class="option-item">
-                    <span class="label" title="输出几个最优结果">🏁 输出数量</span>
-                    <select id="proWantCount">
-                        <option value="1" selected>1 个</option>
-                        <option value="5">5 个</option>
-                        <option value="10">10 个</option>
-                    </select>
-                </div>
-                <div class="option-item">
-                    <span class="label" title="逗号分隔，如 443,2053；留空用默认端口">🚪 测试端口</span>
-                    <input id="proPorts" type="text" value="" placeholder="留空默认；如 443,2053">
-                </div>
-                <div class="option-item">
-                    <span class="label" title="逗号分隔的国家代码，如 HK,JP；留空不限。注意：官方 IP 落地机房取决于运营商线路，筛得越窄耗时越长">🌍 落地地区</span>
-                    <input id="proCountries" type="text" value="" placeholder="如 HK,JP；留空不限">
-                </div>
-                <div class="option-item full-width">
-                    <span class="label" title="填节点域名后会校验回源（拦截 52x）；同时测速 SNI 也会用它">🔑 SNI / 节点域名</span>
-                    <input id="proSNI" type="text" value="" placeholder="留空默认；填节点域名可校验回源">
-                </div>
-                <div class="option-item">
-                    <span class="label" title="单次测速时长；移动等线路建议 10/15 秒以跨过突发不限速窗口">⏱️ 测速时长</span>
-                    <select id="proSpeedSeconds">
-                        <option value="5" selected>5 秒</option>
-                        <option value="10">10 秒</option>
-                        <option value="15">15 秒</option>
-                    </select>
-                </div>
-                <div class="option-item">
-                    <span class="label">🔗 测速源</span>
-                    <select id="proSpeedSource">
-                        <option value="auto">自动选择（按运营商）</option>
-                    </select>
-                </div>
-                <div class="option-item full-width">
-                    <span class="label" title="填自己的域名+大文件，测真实回源链路；非空时优先于上面的测速源">📝 手动测速地址</span>
-                    <input id="proSpeedURL" type="text" value="" placeholder="如 your.domain.com/files/100mb.bin；留空用测速源">
-                </div>
-                <div class="option-item full-width">
-                    <span class="label" title="支持 CIDR / 单 IP / IPv4 起止范围，逗号/空格/换行分隔；# 开头为注释。留空用官方列表">📦 指定 IP 段</span>
-                    <textarea id="proIPRanges" rows="3" style="width:100%;resize:vertical;" placeholder="如 104.16.0.0/13 或 104.16.0.0-104.16.3.255，留空用官方列表" oninput="debouncedProPreviewRanges()"></textarea>
-                    <div id="proRangesPreview" style="font-size:12px;color:var(--text-secondary);margin-top:4px;">未指定，将使用官方 IP 段列表</div>
+                <div class="section-box">
+                    <h3 style="display:flex;justify-content:space-between;align-items:center;">
+                        <span>扫描配置</span>
+                        <button class="action-btn export-btn" id="btnProUpdateData" onclick="updateProData()">更新数据</button>
+                    </h3>
+                    <div class="prow">
+                        <label class="plbl">IP 协议</label>
+                        <div class="pseg" id="proSegIP">
+                            <button data-v="4" class="on">IPv4</button>
+                            <button data-v="6">IPv6</button>
+                        </div>
+                    </div>
+                    <div class="prow">
+                        <label class="plbl">连接验证</label>
+                        <div class="pseg" id="proSegTLS">
+                            <button data-t="1">TLS</button>
+                            <button data-t="0" class="on">关闭</button>
+                        </div>
+                    </div>
+                    <div class="prow">
+                        <label class="plbl">期望带宽</label>
+                        <input type="number" id="proBandwidth" value="1" min="1" max="1000">
+                        <span class="punit">Mbps</span>
+                    </div>
+                    <div class="prow">
+                        <label class="plbl">输出数量</label>
+                        <div class="pseg" id="proSegCount">
+                            <button data-c="1" class="on">1</button>
+                            <button data-c="5">5</button>
+                            <button data-c="10">10</button>
+                        </div>
+                        <span class="phint sub" id="proCountHint">只要最快的一个</span>
+                    </div>
+                    <div class="prow col">
+                        <label class="plbl">端口</label>
+                        <div class="pchips" id="proChipPorts"></div>
+                        <div class="phint sub" id="proPortHint">选你节点实际使用的端口，多选会变慢</div>
+                    </div>
+                    <div class="prow col">
+                        <label class="plbl">落地地区</label>
+                        <div class="pchips" id="proChipRegions"></div>
+                        <input type="text" id="proCountriesExtra" class="pwide" placeholder="其他地区代码，逗号分隔，如 DE,NL">
+                        <div class="phint sub">不选=不限。官方 IP 的落地地区随运营商线路变化，筛得越窄命中率越低、耗时越长。</div>
+                    </div>
+                    <div class="prow col">
+                        <span class="ptoggle" id="proRangeToggle">▸ 指定 IP 段</span>
+                        <div id="proRangeBox" style="display:none">
+                            <div class="phint sub">留空=扫官方全部 IP 段（6500+ 个 /24）。填了就只扫你给的段：候选池小得多，速度快很多，命中率也高 —— 前提是这些段在你的网络下确实好用。</div>
+                            <div class="phint sub">支持 CIDR（<code>104.16.0.0/13</code>）、单个 IP、起止范围（<code>104.16.0.0-104.16.3.255</code>）。一行一条或用逗号/空格分隔都行，<code>#</code> 和 <code>//</code> 开头按注释忽略。大段会自动切成 /24。</div>
+                            <textarea id="proIPRanges" class="pwide" rows="4" style="margin-top:8px" placeholder="例如：&#10;104.16.0.0/13&#10;172.64.0.0/13" oninput="debouncedProPreviewRanges()"></textarea>
+                            <div class="phint sub" id="proRangesPreview">未指定，将使用官方 IP 段列表</div>
+                        </div>
+                    </div>
+                    <div class="prow col">
+                        <span class="ptoggle" id="proAdvToggle">▸ 高级选项</span>
+                        <div id="proAdvBox" style="display:none">
+                            <input type="text" id="proSNI" class="pwide" placeholder="自定义 SNI / Host，例如 your.domain.com">
+                            <div class="phint sub">留空用 cloudflare.com。填你节点的域名可让结果更贴近实际；填错会导致全部测不通。</div>
+                            <div class="prow" style="margin-top:10px">
+                                <label class="plbl">测速源</label>
+                                <div class="pchips" id="proChipSpeedSource"></div>
+                            </div>
+                            <div class="phint sub" id="proSpeedSourceHint">自动选择：先探测你的运营商，移动线路会换用对移动更友好的测速源。</div>
+                            <div id="proSpeedURLBox" style="display:none">
+                                <input type="text" id="proSpeedURL" class="pwide" style="margin-top:8px" placeholder="例如 your.domain.com/files/100mb.bin">
+                                <div class="phint sub">填你自己域名下的一个大文件（100MB 以上），测出来的才是「CF 边缘回源到你服务器」这条实际会用的链路的速度。必须带文件路径。</div>
+                            </div>
+                            <div class="prow" style="margin-top:10px">
+                                <label class="plbl">测速时长</label>
+                                <div class="pseg" id="proSegSpeedSeconds">
+                                    <button data-s="5" class="on">5秒</button>
+                                    <button data-s="10">10秒</button>
+                                    <button data-s="15">15秒</button>
+                                </div>
+                            </div>
+                            <div class="phint sub" id="proSpeedSecondsHint">最快出结果；实际使用比优选结果慢很多时改 10 或 15 秒</div>
+                        </div>
+                    </div>
+                    <div class="phint">候选 IP 从 Cloudflare 官方子网列表随机生成，大部分是不通的，所以扫描时会反复换批次。填的带宽越高，需要的时间越长（最多 10 轮）。</div>
                 </div>
             </div>
 
@@ -6107,12 +6214,209 @@
         // 增强优选最近一次结果（原始 ScanItem 数组），供一键复制/结果操作复用官方弹窗
         let proResultItems = [];
 
+        // ---------- 增强优选扫描配置（对齐原版布局：分段控件 + 多选筹码） ----------
+        let proUseV4 = true;
+        let proUseTLS = false;
+        let proWantCount = 1;
+        let proSpeedSeconds = 5;
+        let proHttpPorts = [80], proHttpsPorts = [443];
+        const proSelectedPorts = new Set();
+        const proSelectedRegions = new Set();
+        const PRO_COMMON_REGIONS = [
+            ['HK', '香港'], ['TW', '台湾'], ['JP', '日本'],
+            ['KR', '韩国'], ['SG', '新加坡'], ['US', '美国'],
+        ];
+        let proSpeedSource = 'auto';
+        let proSpeedSourceIds = ['auto'];
+        let proSpeedSourceLabels = ['自动选择'];
+        let proRangesValid = true;
+
+        const PRO_SPEED_SOURCE_HINTS = {
+            auto: '自动选择：先探测你的运营商，移动线路会换用对移动更友好的测速源。',
+            cloudflare: 'Cloudflare 官方测速端点，通用、稳定。',
+            cm: '社区提供的测速端点，移动线路通常比官方源更接近实际速度。',
+            mobile: '移动专属测速源，直接回 100MB 文件，适合移动宽带/流量卡。',
+            custom: '用你自己的域名测速，测的是「CF 边缘回源到你服务器」这条实际会用的链路，最准。',
+        };
+
+        function proSegInit(sel, attr, cb) {
+            document.querySelectorAll(sel + ' button').forEach(b => {
+                b.onclick = () => {
+                    if (b.disabled) return;
+                    document.querySelectorAll(sel + ' button').forEach(x => x.classList.remove('on'));
+                    b.classList.add('on');
+                    cb(b.dataset[attr]);
+                };
+            });
+        }
+
+        function initProConfigControls() {
+            proSegInit('#proSegIP', 'v', v => { proUseV4 = v === '4'; });
+            proSegInit('#proSegTLS', 't', t => {
+                proUseTLS = t === '1';
+                // 端口集合跟着 TLS 模式变（80 系 vs 443 系），旧的不合法就重建
+                renderProPortChips();
+            });
+            proSegInit('#proSegCount', 'c', c => {
+                proWantCount = parseInt(c, 10) || 1;
+                document.getElementById('proCountHint').textContent =
+                    proWantCount <= 1 ? '只要最快的一个' : ('输出最快的 ' + proWantCount + ' 个，耗时明显增加');
+            });
+            proSegInit('#proSegSpeedSeconds', 's', s => {
+                proSpeedSeconds = parseInt(s, 10) || 5;
+                document.getElementById('proSpeedSecondsHint').textContent =
+                    proSpeedSeconds <= 5
+                        ? '最快出结果；实际使用比优选结果慢很多时改 10 或 15 秒'
+                        : (proSpeedSeconds + ' 秒测速，跨过运营商前几秒的不限速窗口，结果更接近真实速度，扫描会变慢');
+            });
+            document.getElementById('proRangeToggle').onclick = () => {
+                const box = document.getElementById('proRangeBox');
+                const show = box.style.display === 'none';
+                box.style.display = show ? 'block' : 'none';
+                document.getElementById('proRangeToggle').textContent = show ? '▾ 指定 IP 段' : '▸ 指定 IP 段';
+            };
+            document.getElementById('proAdvToggle').onclick = () => {
+                const box = document.getElementById('proAdvBox');
+                const show = box.style.display === 'none';
+                box.style.display = show ? 'block' : 'none';
+                document.getElementById('proAdvToggle').textContent = show ? '▾ 高级选项' : '▸ 高级选项';
+            };
+            renderProRegionChips();
+            renderProPortChips();
+            renderProSpeedSourceChips();
+        }
+
+        function renderProPortChips() {
+            const ports = proUseTLS ? proHttpsPorts : proHttpPorts;
+            const def = proUseTLS ? 443 : 80;
+            for (const p of Array.from(proSelectedPorts)) {
+                if (!ports.includes(p)) proSelectedPorts.delete(p);
+            }
+            if (proSelectedPorts.size === 0 && ports.includes(def)) proSelectedPorts.add(def);
+            const box = document.getElementById('proChipPorts');
+            if (!box) return;
+            box.innerHTML = '';
+            ports.forEach(p => {
+                const b = document.createElement('button');
+                b.textContent = p;
+                if (proSelectedPorts.has(p)) b.classList.add('on');
+                b.onclick = () => {
+                    if (b.disabled) return;
+                    if (proSelectedPorts.has(p)) { proSelectedPorts.delete(p); b.classList.remove('on'); }
+                    else { proSelectedPorts.add(p); b.classList.add('on'); }
+                    updateProPortHint();
+                };
+                box.appendChild(b);
+            });
+            updateProPortHint();
+        }
+
+        function updateProPortHint() {
+            const n = proSelectedPorts.size;
+            const el = document.getElementById('proPortHint');
+            if (!el) return;
+            if (n === 0) el.textContent = '未选端口，将只测标准端口';
+            else if (n === 1) el.textContent = '选你节点实际使用的端口，多选会变慢';
+            else el.textContent = '已选 ' + n + ' 个端口，候选数为单端口的 ' + n + ' 倍，会明显变慢';
+        }
+
+        function renderProRegionChips() {
+            const box = document.getElementById('proChipRegions');
+            if (!box) return;
+            box.innerHTML = '';
+            PRO_COMMON_REGIONS.forEach(([code, name]) => {
+                const b = document.createElement('button');
+                b.textContent = name;
+                if (proSelectedRegions.has(code)) b.classList.add('on');
+                b.onclick = () => {
+                    if (b.disabled) return;
+                    if (proSelectedRegions.has(code)) { proSelectedRegions.delete(code); b.classList.remove('on'); }
+                    else { proSelectedRegions.add(code); b.classList.add('on'); }
+                };
+                box.appendChild(b);
+            });
+        }
+
+        function collectProCountries() {
+            const all = new Set(proSelectedRegions);
+            (document.getElementById('proCountriesExtra').value || '')
+                .split(/[,，\s]+/).forEach(s => {
+                    s = s.trim().toUpperCase();
+                    if (s) all.add(s);
+                });
+            return Array.from(all).join(',');
+        }
+
+        function renderProSpeedSourceChips() {
+            const box = document.getElementById('proChipSpeedSource');
+            if (!box) return;
+            box.innerHTML = '';
+            if (!proSpeedSourceIds.includes(proSpeedSource)) proSpeedSource = proSpeedSourceIds[0];
+            proSpeedSourceIds.forEach((id, i) => {
+                const b = document.createElement('button');
+                b.textContent = proSpeedSourceLabels[i] || id;
+                if (id === proSpeedSource) b.classList.add('on');
+                b.onclick = () => {
+                    if (b.disabled) return;
+                    proSpeedSource = id;
+                    renderProSpeedSourceChips();
+                    updateProSpeedSourceHint();
+                };
+                box.appendChild(b);
+            });
+            updateProSpeedSourceHint();
+        }
+
+        function updateProSpeedSourceHint() {
+            const el = document.getElementById('proSpeedSourceHint');
+            if (el) el.textContent = PRO_SPEED_SOURCE_HINTS[proSpeedSource] || PRO_SPEED_SOURCE_HINTS.auto;
+            const box = document.getElementById('proSpeedURLBox');
+            if (box) box.style.display = proSpeedSource === 'custom' ? 'block' : 'none';
+        }
+
+        // 扫描中锁掉筛选项：改了也不会生效，留着可点会误导
+        function proSetBusy(on) {
+            document.querySelectorAll('#proSegIP button,#proSegTLS button,#proSegCount button,#proSegSpeedSeconds button')
+                .forEach(b => b.disabled = on);
+            document.querySelectorAll('#proChipPorts button,#proChipRegions button,#proChipSpeedSource button')
+                .forEach(b => b.disabled = on);
+            ['proBandwidth', 'proCountriesExtra', 'proIPRanges', 'proSNI', 'proSpeedURL', 'btnProUpdateData']
+                .forEach(id => { const el = document.getElementById(id); if (el) el.disabled = on; });
+        }
+
+        function updateProData() {
+            const btn = document.getElementById('btnProUpdateData');
+            if (btn) btn.disabled = true;
+            showNoticeCard('正在更新数据文件，请稍候…');
+            if (!wsSend({ type: 'update_pro_data', data: {} })) {
+                showNoticeCard('连接未就绪，请等待重连后再试');
+                if (btn) btn.disabled = false;
+            }
+        }
+
         function startProTask() {
-            const ipType = parseInt(document.getElementById('proIpType').value) || 4;
-            const useTLS = document.getElementById('proUseTLS').value === 'on';
-            const bandwidth = parseInt(document.getElementById('proBandwidth').value) || 0;
-            const wantCount = parseInt(document.getElementById('proWantCount').value) || 1;
-            const speedSeconds = parseInt(document.getElementById('proSpeedSeconds').value) || 5;
+            const bwEl = document.getElementById('proBandwidth');
+            let bandwidth = parseInt(bwEl.value, 10);
+            if (!Number.isFinite(bandwidth) || bandwidth < 1) bandwidth = 1;
+            if (bandwidth > 1000) bandwidth = 1000;
+            bwEl.value = bandwidth;
+
+            const speedURL = document.getElementById('proSpeedURL').value.trim();
+            // 选了手动输入却没填地址：与其让用户等一轮扫描再看到报错，不如现在就说清楚
+            if (proSpeedSource === 'custom' && !speedURL) {
+                showNoticeCard('请先填写测速地址，或把测速源改回「自动选择」');
+                return;
+            }
+
+            // IP 段填错就别开始了。先把折叠区展开，否则用户看不到错在哪
+            const ipRanges = document.getElementById('proIPRanges').value.trim();
+            if (!proRangesValid) {
+                showNoticeCard('IP 段填写有误，请检查后再扫描');
+                const box = document.getElementById('proRangeBox');
+                if (box.style.display === 'none') document.getElementById('proRangeToggle').click();
+                document.getElementById('proIPRanges').focus();
+                return;
+            }
 
             isTaskRunning = true;
             runningTaskLabel = '增强优选扫描';
@@ -6121,6 +6425,7 @@
             setStartLoading('⚡ 增强优选中...');
             resetProgress();
             progressBox.style.display = 'block';
+            proSetBusy(true);
             document.getElementById('proStatusLine').textContent = '正在初始化...';
             document.querySelector('#proTable tbody').innerHTML = '';
             document.getElementById('proHintLine').textContent = '';
@@ -6129,19 +6434,20 @@
 
             if (!wsSend({
                 type: 'start_pro_task', data: {
-                    ipType: ipType,
-                    useTLS: useTLS,
+                    ipType: proUseV4 ? 4 : 6,
+                    useTLS: proUseTLS,
                     bandwidth: bandwidth,
-                    ports: document.getElementById('proPorts').value.trim(),
-                    countries: document.getElementById('proCountries').value.trim(),
+                    ports: Array.from(proSelectedPorts).join(','),
+                    countries: collectProCountries(),
                     sni: document.getElementById('proSNI').value.trim(),
-                    wantCount: wantCount,
-                    speedSeconds: speedSeconds,
-                    speedSource: document.getElementById('proSpeedSource').value,
-                    speedURL: document.getElementById('proSpeedURL').value.trim(),
+                    wantCount: proWantCount,
+                    speedSeconds: proSpeedSeconds,
+                    speedSource: proSpeedSource,
+                    speedURL: speedURL,
                     ipRanges: document.getElementById('proIPRanges').value,
                 }
             })) {
+                proSetBusy(false);
                 finishRunningTask('⚡ 开始增强优选');
                 showNoticeCard('连接未就绪，请等待重连后再试');
             }
@@ -6158,23 +6464,24 @@
 
         function applyProMeta(meta) {
             proMeta = meta;
-            const sel = document.getElementById('proSpeedSource');
-            if (sel && meta.speedSources) {
-                sel.innerHTML = '';
+            if (!meta) return;
+            // 端口列表从后端取，前端只负责渲染（两处各写一份会出现「界面能选、核心层不认」）
+            if (meta.httpPorts) proHttpPorts = String(meta.httpPorts).split(',').map(Number).filter(Boolean);
+            if (meta.httpsPorts) proHttpsPorts = String(meta.httpsPorts).split(',').map(Number).filter(Boolean);
+            renderProPortChips();
+            // 测速源同理。两个列表长度必须一致，否则按下标配对会把标识和显示名错开
+            if (meta.speedSources) {
+                const ids = [], labels = [];
                 meta.speedSources.forEach(opt => {
                     const idx = opt.indexOf(':');
-                    const id = idx >= 0 ? opt.slice(0, idx) : opt;
-                    const label = idx >= 0 ? opt.slice(idx + 1) : opt;
-                    const o = document.createElement('option');
-                    o.value = id || 'auto';
-                    o.textContent = label || id || '自动选择';
-                    sel.appendChild(o);
+                    ids.push(idx >= 0 ? opt.slice(0, idx) : opt);
+                    labels.push(idx >= 0 ? opt.slice(idx + 1) : opt);
                 });
-            }
-            const portInput = document.getElementById('proPorts');
-            if (portInput && meta) {
-                const tls = document.getElementById('proUseTLS').value === 'on';
-                portInput.placeholder = `留空默认；可选 ${(tls ? meta.httpsPorts : meta.httpPorts) || ''}`;
+                if (ids.length) {
+                    proSpeedSourceIds = ids;
+                    proSpeedSourceLabels = labels;
+                    renderProSpeedSourceChips();
+                }
             }
         }
 
@@ -6196,6 +6503,7 @@
         }
 
         function renderProResults(result) {
+            proSetBusy(false);
             const tbody = document.querySelector('#proTable tbody');
             tbody.innerHTML = '';
             const items = (result && result.results) || [];
@@ -6609,11 +6917,18 @@
                     break;
                 case 'pro_preview_result': {
                     const pv = msg.data || {};
+                    proRangesValid = !!pv.ok;
                     const el = document.getElementById('proRangesPreview');
                     if (el) {
                         el.textContent = pv.ok ? ('✅ ' + (pv.summary || '')) : ('❌ ' + (pv.error || '解析失败'));
                         el.style.color = pv.ok ? 'var(--success-color, #10b981)' : 'var(--warning-color)';
                     }
+                    break;
+                }
+                case 'pro_data_result': {
+                    const btn = document.getElementById('btnProUpdateData');
+                    if (btn) btn.disabled = false;
+                    showNoticeCard((msg.data && msg.data.msg) || '数据更新完成');
                     break;
                 }
                 case 'pro_progress': {
@@ -6705,6 +7020,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             connect();
             initializeUI();
+            initProConfigControls();
             renderGitHubAccounts();
             renderEdgetunnelAccounts();
             switchMode('official');

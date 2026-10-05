@@ -218,6 +218,20 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				"maxRangeSubnets": pro.MaxIPRangeSubnets(),
 			})
 		},
+		// update_pro_data：增强优选「更新数据」按钮，重新下载数据文件
+		"update_pro_data": func(data json.RawMessage) {
+			go func() {
+				cacheDir := "."
+				if wd, err := os.Getwd(); err == nil {
+					cacheDir = wd
+				}
+				msg := pro.UpdateDataFiles(context.Background(), cacheDir)
+				if msg == "" {
+					msg = "数据更新完成"
+				}
+				session.sendWSMessage("pro_data_result", map[string]interface{}{"msg": msg})
+			}()
+		},
 		"start_test": func(data json.RawMessage) {
 			var params startTestRequest
 			if err := json.Unmarshal(data, &params); err != nil {
