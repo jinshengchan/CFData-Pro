@@ -138,9 +138,8 @@ jobs:
           go-version: "1.25"
           cache: true
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
+      # 注意：ubuntu-latest runner 已预装 Android SDK（ANDROID_HOME），
+      # 不需要 android-actions/setup-android（该 action 在新版 runner 上会失败）
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
