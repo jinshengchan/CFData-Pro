@@ -27,6 +27,9 @@ Cloudflare IP 优选工具：**CFData-WEB** 的平台 + **guanfang-youxuan** 的
 - 一键上传到 GitHub / edgetunnel
 - IPv4 地址库精简、代理地区检测、Web 登录认证、后台任务（断线重连跟随）
 - CLI 全功能（参数与原版一致，`./cfdata-pro -h` 查看）
+  - `-cli` 进入交互菜单：按已保存配置启动 / 自定义参数启动 / 修改配置参数 / 定时任务 / 帮助；`-cli qs` 按配置快速启动
+  - 参数设置向导：分模块逐项设置，可保存为配置文件
+  - 定时任务：仅 Linux systemd，按天/周/月执行，开机自启
 
 ## 下载
 
