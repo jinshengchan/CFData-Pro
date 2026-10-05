@@ -10,8 +10,33 @@ android {
         applicationId "com.cfdatapro.app"
         minSdk 26
         targetSdk 35
-        versionCode 1
+        // CI 从 tag（如 v1.5）算出 versionCode，保证每次发版递增，可覆盖安装
+        versionCode (System.getenv("ANDROID_VERSION_CODE") ?: "1").toInteger()
         versionName System.getenv("ANDROID_VERSION_NAME") ?: "1.0"
+    }
+
+    // 固定签名：CI 从 Secrets 还原 keystore，保证每次构建签名一致，
+    // 否则 Android 会因签名不同拒绝覆盖安装。本地没有证书时不签名（走 debug）。
+    signingConfigs {
+        release {
+            def ksPath = System.getenv("APK_KEYSTORE_PATH")
+            if (ksPath) {
+                storeFile file(ksPath)
+                storePassword System.getenv("APK_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("APK_KEY_ALIAS")
+                keyPassword System.getenv("APK_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (System.getenv("APK_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled false
+            shrinkResources false
+        }
     }
 
     packaging {

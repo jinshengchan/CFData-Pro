@@ -92,6 +92,10 @@ jobs:
             version="dev-$(git rev-parse --short HEAD)"
           fi
           echo "VERSION=$version" >> $GITHUB_OUTPUT
+          # versionCode：v1.5 -> 115，保证发版递增
+          code=$(echo "$version" | sed -E 's/^v([0-9]+)\.([0-9]+).*/\1\2/;s/[^0-9]//g')
+          if [ -z "$code" ]; then code=1; fi
+          echo "VERSION_CODE=$((code + 100))" >> $GITHUB_OUTPUT
 
       - name: Build
         run: |
@@ -156,6 +160,10 @@ jobs:
             version="dev-$(git rev-parse --short HEAD)"
           fi
           echo "VERSION=$version" >> $GITHUB_OUTPUT
+          # versionCode：v1.5 -> 115，保证发版递增
+          code=$(echo "$version" | sed -E 's/^v([0-9]+)\.([0-9]+).*/\1\2/;s/[^0-9]//g')
+          if [ -z "$code" ]; then code=1; fi
+          echo "VERSION_CODE=$((code + 100))" >> $GITHUB_OUTPUT
 
       - name: Build Android backend
         env:
@@ -165,20 +173,33 @@ jobs:
         run: |
           go build -trimpath -ldflags "-s -w -X main.appVersion=${{ steps.set-version.outputs.VERSION }}" -o app/src/main/jniLibs/arm64-v8a/libcfdatapro.so .
 
-      - name: Build debug APK
+      # 固定签名：从 Secrets 还原 keystore，保证每次构建签名一致，
+      # 否则 Android 会因签名不同拒绝覆盖安装
+      - name: Restore signing keystore
+        env:
+          APK_KEYSTORE_BASE64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+        run: |
+          echo "$APK_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "APK_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+
+      - name: Build release APK
         env:
           ANDROID_VERSION_NAME: ${{ steps.set-version.outputs.VERSION }}
-        run: gradle assembleDebug --no-daemon
+          ANDROID_VERSION_CODE: ${{ steps.set-version.outputs.VERSION_CODE }}
+          APK_KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          APK_KEY_ALIAS: ${{ secrets.APK_KEY_ALIAS }}
+          APK_KEY_PASSWORD: ${{ secrets.APK_KEY_PASSWORD }}
+        run: gradle assembleRelease --no-daemon
 
       - name: Verify APK contains backend
         run: |
-          unzip -l app/build/outputs/apk/debug/app-debug.apk | tee apk-contents.txt
+          unzip -l app/build/outputs/apk/release/app-release.apk | tee apk-contents.txt
           grep -q "lib/arm64-v8a/libcfdatapro.so" apk-contents.txt
 
       - name: Prepare APK asset
         run: |
           mkdir -p release_assets
-          cp app/build/outputs/apk/debug/app-debug.apk release_assets/cfdata-pro-android-arm64.apk
+          cp app/build/outputs/apk/release/app-release.apk release_assets/cfdata-pro-android-arm64.apk
           cd release_assets
           sha256sum cfdata-pro-android-arm64.apk | awk '{print $1}' > cfdata-pro-android-arm64.apk.sha256
 
