@@ -1,0 +1,157 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version"
+        required: false
+        default: "v1.0"
+        type: string
+      prerelease:
+        description: "Mark release as pre-release"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Format & Vet
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: gofmt check
+        run: |
+          bad=$(gofmt -l . | grep -v '^$' || true)
+          if [ -n "$bad" ]; then
+            echo "未格式化的文件:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: go vet
+        run: go vet ./...
+
+  build:
+    name: Build
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+            ext: ".exe"
+          - goos: windows
+            goarch: arm64
+            ext: ".exe"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Set version
+        id: set-version
+        run: |
+          version="${{ github.event.inputs.version }}"
+          if [ -z "$version" ]; then
+            version="${{ github.ref_name }}"
+          fi
+          if [ -z "$version" ] || [ "$version" = "main" ]; then
+            version="dev-$(git rev-parse --short HEAD)"
+          fi
+          echo "VERSION=$version" >> $GITHUB_OUTPUT
+
+      - name: Build
+        run: |
+          ext="${{ matrix.ext || '' }}"
+          filename="cfdata-pro-${{ matrix.goos }}-${{ matrix.goarch }}${ext}"
+          echo "Building ${filename}..."
+          mkdir -p release_assets
+          go build -trimpath -ldflags "-s -w -X main.appVersion=${{ steps.set-version.outputs.VERSION }}" -o release_assets/${filename} .
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          GOOS: ${{ matrix.goos }}
+          CGO_ENABLED: "0"
+
+      - name: Generate SHA256
+        run: |
+          cd release_assets
+          for file in $(find . -type f ! -name '*.sha256'); do
+            sha256sum "$file" | awk '{print $1}' > "${file}.sha256"
+          done
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext || '' }}
+          path: release_assets/*
+
+  release:
+    name: Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: asset-*
+          merge-multiple: true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "CFData-Pro ${{ github.ref_name }}"
+          body: |
+            ## CFData-Pro ${{ github.ref_name }}
+
+            Cloudflare IP 优选工具：CFData-WEB 平台 + guanfang-youxuan 带宽优选引擎。
+
+            - ☁️ 官方优选 / 📂 非标优选 / ⚡ 增强优选（带宽优选）
+            - 支持 Linux / macOS / Windows（amd64、arm64）
+
+            构建方式：GitHub Actions 自动构建。
+          files: artifacts/*
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
