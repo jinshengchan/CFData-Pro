@@ -359,6 +359,7 @@ func (r *regionSampler) next(n int) []string {
 			break
 		}
 		chunks++
+		setProgressState("recon", r.base.used(), r.base.total())
 		setScanProgress(fmt.Sprintf("地区侦察：正在探测 %d 个子网的落地机房（累计 %d/%d）...",
 			len(chunk), r.base.used(), r.base.total()))
 
@@ -372,6 +373,7 @@ func (r *regionSampler) next(n int) []string {
 		if r.stats.probed > 0 {
 			rate = fmt.Sprintf("，命中率 %.1f%%", float64(r.stats.matched)/float64(r.stats.probed)*100)
 		}
+		setProgressState("recon", r.stats.probed, r.base.total())
 		setScanProgress(fmt.Sprintf("地区侦察：已探测 %d/%d 个子网，命中 %d 个，排除 %d 个，待定 %d 个%s",
 			r.stats.probed, r.base.total(), r.stats.matched, r.stats.mismatched, r.stats.unknown, rate))
 	}

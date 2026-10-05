@@ -6453,7 +6453,7 @@
             runningTaskLabel = '增强优选扫描';
             runningTaskMode = 'pro';
             isStoppingTask = false;
-            setStartLoading('⚡ 增强优选中...');
+            setStartLoading(getRunningButtonText());
             resetProgress();
             progressBox.style.display = 'block';
             proSetBusy(true);
@@ -6519,6 +6519,7 @@
         // 增强优选进度条：和官方优选同款 "扫描中 2320/6534（36%）"。
         // 后端 tasks_pro.go 在 pro_progress 里带了结构化进度 {phase, current, total}。
         function updateProProgressBar(d, text) {
+            progressBox.style.display = 'block';
             const total = parseInt(d.total) || 0;
             const current = parseInt(d.current) || 0;
             const phaseLabel = { init: '准备中', rtt: 'RTT 测试中', recon: '扫描中', speed: '测速中', done: '完成' }[d.phase] || '扫描中';
@@ -6527,7 +6528,7 @@
                 progressBar.style.width = p + '%';
                 progressBar.textContent = `${phaseLabel} ${current}/${total} (${p}%)`;
             } else {
-                progressBar.style.width = '0%';
+                progressBar.style.width = '100%';
                 progressBar.textContent = text || phaseLabel;
             }
             progressBar.style.animation = 'stripe 1s linear infinite';
