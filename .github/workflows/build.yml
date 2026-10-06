@@ -230,6 +230,7 @@ jobs:
       # 更新日志：优先取 annotated tag 信息正文（打 tag 时写），取不到则用相邻 tag 之间的提交记录。
       # 注意：CI 检出后 tag 经常是轻量形式（此时 git 取到的是 commit message），
       # 所以正文走 GitHub API 直接读 tag 对象；commit message 尾部的 (original: <sha>) 标记要过滤掉。
+      # tag 正文若自带"更新日志："小标题也去掉——release body 模板里已有 ### 更新日志，避免重复。
       - name: Read release notes
         id: notes
         env:
@@ -249,7 +250,7 @@ jobs:
               notes=$(git log --pretty=format:'- %s' "${{ github.ref_name }}")
             fi
           fi
-          notes=$(printf '%s\n' "$notes" | grep -v '^(original: [0-9a-f]\{40\})$' | sed '/./,$!d' || true)
+          notes=$(printf '%s\n' "$notes" | grep -v '^(original: [0-9a-f]\{40\})$' | sed '/./,$!d' | sed '1{/^更新日志[：:]*[[:space:]]*$/d}' || true)
           {
             echo "NOTES<<EOF"
             echo "$notes"
