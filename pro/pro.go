@@ -163,6 +163,11 @@ type ProgressState struct {
 	Current int    `json:"current"` // 已完成数
 	Total   int    `json:"total"`   // 总数
 	Found   int    `json:"found"`   // 已找到的候选结果数（实时）
+	// 以下为后台卡片对齐官方优选口径的统计
+	RTTTested      int `json:"rttTested"`
+	RTTValid       int `json:"rttValid"`
+	SpeedTested    int `json:"speedTested"`
+	SpeedQualified int `json:"speedQualified"`
 }
 
 var (
@@ -170,11 +175,14 @@ var (
 	progressState   ProgressState
 )
 
-// setProgressState 记录结构化进度快照（保留 Found 计数）。
+// setProgressState 记录结构化进度快照（保留 Found/统计计数）。
 func setProgressState(phase string, current, total int) {
 	progressStateMu.Lock()
-	found := progressState.Found
-	progressState = ProgressState{Phase: phase, Current: current, Total: total, Found: found}
+	st := progressState
+	st.Phase = phase
+	st.Current = current
+	st.Total = total
+	progressState = st
 	progressStateMu.Unlock()
 }
 
@@ -182,6 +190,33 @@ func setProgressState(phase string, current, total int) {
 func setProgressFound(n int) {
 	progressStateMu.Lock()
 	progressState.Found = n
+	progressStateMu.Unlock()
+}
+
+// setRTTStats 记录 RTT 阶段统计（已测/有效）。
+func setRTTStats(tested, valid int) {
+	progressStateMu.Lock()
+	progressState.RTTTested = tested
+	progressState.RTTValid = valid
+	progressStateMu.Unlock()
+}
+
+// setSpeedStats 记录测速阶段统计（已测/达标）。
+func setSpeedStats(tested, qualified int) {
+	progressStateMu.Lock()
+	progressState.SpeedTested = tested
+	progressState.SpeedQualified = qualified
+	progressStateMu.Unlock()
+}
+
+// resetProgressStats 新扫描开始时清零统计。
+func resetProgressStats() {
+	progressStateMu.Lock()
+	progressState.Found = 0
+	progressState.RTTTested = 0
+	progressState.RTTValid = 0
+	progressState.SpeedTested = 0
+	progressState.SpeedQualified = 0
 	progressStateMu.Unlock()
 }
 
@@ -287,7 +322,7 @@ func Scan(ctx context.Context, cfg Config, onProgress ProgressFunc) (result *Sca
 	})
 	defer setProgressHook(nil)
 	setProgressState("init", 0, 0)
-	setProgressFound(0)
+	resetProgressStats()
 	markScanStart()
 	setProgress("正在初始化...")
 

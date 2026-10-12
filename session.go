@@ -385,9 +385,18 @@ func (s *appSession) applyBackgroundMessageLocked(msgType string, data interface
 			s.backgroundSnapshot.Message = msg
 		}
 		s.backgroundSnapshot.ResultCount = asInt(m["found"])
-		s.backgroundSnapshot.ScanSuccess = asInt(m["found"])
-		s.backgroundSnapshot.SpeedSuccess = asInt(m["found"])
-		s.backgroundSnapshot.SpeedQualified = asInt(m["found"])
+		// 对齐官方优选口径：扫描结果= RTT 阶段，测速结果=测速阶段
+		rttTested := asInt(m["rttTested"])
+		rttValid := asInt(m["rttValid"])
+		s.backgroundSnapshot.ScanTotal = rttTested
+		s.backgroundSnapshot.ScanSuccess = rttValid
+		s.backgroundSnapshot.ScanFailed = max(rttTested-rttValid, 0)
+		speedTested := asInt(m["speedTested"])
+		speedQualified := asInt(m["speedQualified"])
+		s.backgroundSnapshot.SpeedTotal = speedTested
+		s.backgroundSnapshot.SpeedSuccess = speedQualified
+		s.backgroundSnapshot.SpeedFailed = max(speedTested-speedQualified, 0)
+		s.backgroundSnapshot.SpeedQualified = speedQualified
 		s.updateProgressSnapshotLocked(phase, asInt(m["current"]), asInt(m["total"]), phase)
 	case "pro_complete":
 		s.backgroundSnapshot.Phase = "完成"

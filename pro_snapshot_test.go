@@ -27,3 +27,23 @@ func TestProProgressSnapshot(t *testing.T) {
 		t.Fatalf("Phase = %q, want 完成", s.backgroundSnapshot.Phase)
 	}
 }
+
+// pro 后台快照口径与官方优选对齐：扫描结果=RTT 阶段，测速结果=测速阶段
+func TestProStatsSnapshot(t *testing.T) {
+	s := &appSession{isTaskRunning: true, backgroundTask: true}
+	s.applyBackgroundMessageLocked("pro_progress", map[string]interface{}{
+		"msg": "test", "phase": "speed", "current": 6, "total": 10, "found": 4,
+		"rttTested": 192, "rttValid": 50, "speedTested": 6, "speedQualified": 4,
+	})
+	if s.backgroundSnapshot.ScanSuccess != 50 || s.backgroundSnapshot.ScanFailed != 142 {
+		t.Fatalf("scan stats = %d/%d, want 50/142",
+			s.backgroundSnapshot.ScanSuccess, s.backgroundSnapshot.ScanFailed)
+	}
+	if s.backgroundSnapshot.SpeedSuccess != 4 || s.backgroundSnapshot.SpeedFailed != 2 {
+		t.Fatalf("speed stats = %d/%d, want 4/2",
+			s.backgroundSnapshot.SpeedSuccess, s.backgroundSnapshot.SpeedFailed)
+	}
+	if s.backgroundSnapshot.SpeedQualified != 4 {
+		t.Fatalf("speedQualified = %d, want 4", s.backgroundSnapshot.SpeedQualified)
+	}
+}

@@ -3806,23 +3806,8 @@
             const scanFailed = snapshot.scanFailed || 0;
             const speedSuccess = snapshot.speedSuccess || 0;
             const speedFailed = snapshot.speedFailed || 0;
-            if (snapshot.mode === 'pro') {
-                // pro 引擎：测试数取当前阶段实际已处理数（与进度卡一致），
-                // 成功数取已找到候选数；合格率/失败数无统计口径，显示 -
-                const proStats = (tested, found) => [
-                    ['测试数', tested],
-                    ['合格率', '-'],
-                    ['成功数', found],
-                    ['失败数', '-'],
-                ].map(([label, value]) => `<span class="background-stat-cell"><span class="background-stat-name">${label}</span><span class="background-stat-number">${value}</span></span>`).join('');
-                const tested = snapshot.current || 0;
-                const found = snapshot.resultCount || 0;
-                document.getElementById('backgroundResultCount').innerHTML = `<div class="background-stat-grid">${proStats(tested, found)}</div>`;
-                document.getElementById('backgroundSpeedCount').innerHTML = `<div class="background-stat-grid">${proStats(tested, found)}</div>`;
-            } else {
-                document.getElementById('backgroundResultCount').innerHTML = `<div class="background-stat-grid">${formatStats(scanSuccess, scanFailed, scanSuccess)}</div>`;
-                document.getElementById('backgroundSpeedCount').innerHTML = `<div class="background-stat-grid">${formatStats(speedSuccess, speedFailed, snapshot.speedQualified || 0)}</div>`;
-            }
+            document.getElementById('backgroundResultCount').innerHTML = `<div class="background-stat-grid">${formatStats(scanSuccess, scanFailed, scanSuccess)}</div>`;
+            document.getElementById('backgroundSpeedCount').innerHTML = `<div class="background-stat-grid">${formatStats(speedSuccess, speedFailed, snapshot.speedQualified ?? speedSuccess)}</div>`;
             const followBtn = document.getElementById('btnFollowBackground');
             if (followBtn) {
                 followBtn.disabled = backgroundTaskFollowing;

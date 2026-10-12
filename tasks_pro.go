@@ -46,11 +46,15 @@ func runProTask(ctx context.Context, session *appSession, p startProTaskRequest)
 
 	result := pro.Scan(ctx, cfg, func(msg string, st pro.ProgressState) {
 		session.sendWSMessage("pro_progress", map[string]interface{}{
-			"msg":     msg,
-			"phase":   st.Phase,
-			"current": st.Current,
-			"total":   st.Total,
-			"found":   st.Found,
+			"msg":            msg,
+			"phase":          st.Phase,
+			"current":        st.Current,
+			"total":          st.Total,
+			"found":          st.Found,
+			"rttTested":      st.RTTTested,
+			"rttValid":       st.RTTValid,
+			"speedTested":    st.SpeedTested,
+			"speedQualified": st.SpeedQualified,
 		})
 	})
 
