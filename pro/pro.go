@@ -162,6 +162,7 @@ type ProgressState struct {
 	Phase   string `json:"phase"`   // init | rtt | recon | speed | done
 	Current int    `json:"current"` // 已完成数
 	Total   int    `json:"total"`   // 总数
+	Found   int    `json:"found"`   // 已找到的候选结果数（实时）
 }
 
 var (
@@ -169,10 +170,18 @@ var (
 	progressState   ProgressState
 )
 
-// setProgressState 记录结构化进度快照。
+// setProgressState 记录结构化进度快照（保留 Found 计数）。
 func setProgressState(phase string, current, total int) {
 	progressStateMu.Lock()
-	progressState = ProgressState{Phase: phase, Current: current, Total: total}
+	found := progressState.Found
+	progressState = ProgressState{Phase: phase, Current: current, Total: total, Found: found}
+	progressStateMu.Unlock()
+}
+
+// setProgressFound 更新已找到的候选结果数（结果池新增时调用）。
+func setProgressFound(n int) {
+	progressStateMu.Lock()
+	progressState.Found = n
 	progressStateMu.Unlock()
 }
 
@@ -278,6 +287,7 @@ func Scan(ctx context.Context, cfg Config, onProgress ProgressFunc) (result *Sca
 	})
 	defer setProgressHook(nil)
 	setProgressState("init", 0, 0)
+	setProgressFound(0)
 	markScanStart()
 	setProgress("正在初始化...")
 

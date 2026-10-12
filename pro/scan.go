@@ -2484,6 +2484,7 @@ func (p *resultPool) add(r speedResult) {
 	}
 	p.items = append(p.items, r)
 	p.sortAndTrim()
+	setProgressFound(len(p.items))
 }
 
 func (p *resultPool) sortAndTrim() {

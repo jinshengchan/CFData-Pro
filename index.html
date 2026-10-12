@@ -3721,6 +3721,9 @@
                     runningTaskMode = snapshot.mode;
                     runningTaskLabel = snapshot.label || '后台任务';
                     runningTaskTab = 'scan';
+                } else if (snapshot.mode === 'pro') {
+                    if (currentMode !== 'pro') switchMode('pro');
+                    updateBadge('proResultCount', snapshot.resultCount || 0);
                 }
                 return;
             }
@@ -3732,6 +3735,18 @@
             if (snapshot.mode === 'official' || snapshot.mode === 'nsb') runningTaskMode = snapshot.mode;
             runningTaskLabel = snapshot.label || '后台任务';
             runningTaskTab = 'scan';
+            if (snapshot.mode === 'pro') {
+                if (currentMode !== 'pro') switchMode('pro');
+                updateBadge('proResultCount', snapshot.resultCount || 0);
+                updateProProgressBar(
+                    { phase: snapshot.phase, current: snapshot.current, total: snapshot.total },
+                    snapshot.message || '增强优选'
+                );
+                const statusLine = document.getElementById('proStatusLine');
+                if (statusLine && snapshot.message) statusLine.textContent = snapshot.message;
+                if (!backgroundTaskFollowing) startBackgroundStatusPolling();
+                return;
+            }
             applyBackgroundParams(snapshot.params || {});
             setStartLoading(getRunningButtonText());
             progressBox.style.display = 'block';
@@ -3748,7 +3763,9 @@
             document.getElementById('backgroundStatusTitle').textContent = title;
             const source = snapshot.params?.sourceURL || snapshot.params?.fileName || (snapshot.mode === 'official' ? '官方内置地址库' : '') || snapshot.params?.outFile || snapshot.params?.dc || '-';
             document.getElementById('backgroundSource').textContent = source;
-            const phaseText = snapshot.phase || '-';
+            const phaseText = snapshot.mode === 'pro'
+                ? ({ init: '准备中', rtt: 'RTT 测试中', recon: '扫描中', speed: '测速中', done: '完成' }[snapshot.phase] || snapshot.phase || '-')
+                : (snapshot.phase || '-');
             let dcSuffix = '';
             if (snapshot.dcInfo) {
                 dcSuffix = ` [${snapshot.dcInfo}]`;
@@ -6969,6 +6986,7 @@
                     const statusLine = document.getElementById('proStatusLine');
                     if (statusLine) statusLine.textContent = text;
                     updateProProgressBar(d, text);
+                    if (d.found !== undefined && d.found !== null) updateBadge('proResultCount', d.found);
                     break;
                 }
                 case 'pro_complete':

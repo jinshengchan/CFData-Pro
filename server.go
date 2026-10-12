@@ -434,6 +434,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				if payload != nil {
 					backgroundSession.sendWSMessage("nsb_csv_complete", *payload)
 				}
+				backgroundSession.proMutex.Lock()
+				proPayload := backgroundSession.proCompletePayload
+				backgroundSession.proMutex.Unlock()
+				if proPayload != nil {
+					backgroundSession.sendWSMessage("pro_complete", proPayload)
+				}
 			}
 		},
 		"get_background_task_status": func(data json.RawMessage) {

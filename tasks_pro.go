@@ -50,6 +50,7 @@ func runProTask(ctx context.Context, session *appSession, p startProTaskRequest)
 			"phase":   st.Phase,
 			"current": st.Current,
 			"total":   st.Total,
+			"found":   st.Found,
 		})
 	})
 

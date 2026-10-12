@@ -247,6 +247,8 @@ type appSession struct {
 	nsbHeaders           []string
 	nsbRows              [][]string
 	nsbCompletePayload   *nsbCSVCompletePayload
+	proMutex             sync.Mutex
+	proCompletePayload   interface{}
 	progressMutex        sync.Mutex
 	progressState        map[string][2]int
 	progressPrintTime    map[string]time.Time

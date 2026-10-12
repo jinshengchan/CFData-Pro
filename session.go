@@ -372,6 +372,27 @@ func (s *appSession) applyBackgroundMessageLocked(msgType string, data interface
 			s.nsbCompletePayload = &payload
 			s.nsbMutex.Unlock()
 		}
+	case "pro_progress":
+		m, ok := data.(map[string]interface{})
+		if !ok {
+			return
+		}
+		phase := fmt.Sprint(m["phase"])
+		if phase == "" || phase == "<nil>" {
+			phase = "增强优选"
+		}
+		if msg := fmt.Sprint(m["msg"]); msg != "" && msg != "<nil>" {
+			s.backgroundSnapshot.Message = msg
+		}
+		s.backgroundSnapshot.ResultCount = asInt(m["found"])
+		s.updateProgressSnapshotLocked(phase, asInt(m["current"]), asInt(m["total"]), phase)
+	case "pro_complete":
+		s.backgroundSnapshot.Phase = "完成"
+		s.backgroundSnapshot.Message = "增强优选完成"
+		s.finishBackgroundStatsLocked()
+		s.proMutex.Lock()
+		s.proCompletePayload = data
+		s.proMutex.Unlock()
 	case "task_stopped":
 		s.backgroundSnapshot.Phase = "已停止"
 		s.backgroundSnapshot.Message = "任务已停止"
