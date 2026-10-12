@@ -3794,8 +3794,22 @@
             const scanFailed = snapshot.scanFailed || 0;
             const speedSuccess = snapshot.speedSuccess || 0;
             const speedFailed = snapshot.speedFailed || 0;
-            document.getElementById('backgroundResultCount').innerHTML = `<div class="background-stat-grid">${formatStats(scanSuccess, scanFailed, scanSuccess)}</div>`;
-            document.getElementById('backgroundSpeedCount').innerHTML = `<div class="background-stat-grid">${formatStats(speedSuccess, speedFailed, snapshot.speedQualified || 0)}</div>`;
+            if (snapshot.mode === 'pro') {
+                // pro 引擎只保留优选结果池，不统计逐个 IP 的成败数；
+                // 只显示真实已知的"已找到候选数"，其余用 - 避免误导
+                const proStats = (found) => [
+                    ['测试数', '-'],
+                    ['合格率', '-'],
+                    ['成功数', found],
+                    ['失败数', '-'],
+                ].map(([label, value]) => `<span class="background-stat-cell"><span class="background-stat-name">${label}</span><span class="background-stat-number">${value}</span></span>`).join('');
+                const found = snapshot.resultCount || 0;
+                document.getElementById('backgroundResultCount').innerHTML = `<div class="background-stat-grid">${proStats(found)}</div>`;
+                document.getElementById('backgroundSpeedCount').innerHTML = `<div class="background-stat-grid">${proStats(found)}</div>`;
+            } else {
+                document.getElementById('backgroundResultCount').innerHTML = `<div class="background-stat-grid">${formatStats(scanSuccess, scanFailed, scanSuccess)}</div>`;
+                document.getElementById('backgroundSpeedCount').innerHTML = `<div class="background-stat-grid">${formatStats(speedSuccess, speedFailed, snapshot.speedQualified || 0)}</div>`;
+            }
             const followBtn = document.getElementById('btnFollowBackground');
             if (followBtn) {
                 followBtn.disabled = backgroundTaskFollowing;
