@@ -193,19 +193,21 @@ func setProgressFound(n int) {
 	progressStateMu.Unlock()
 }
 
-// setRTTStats 记录 RTT 阶段统计（已测/有效）。
-func setRTTStats(tested, valid int) {
+// addRTTStats 累加 RTT 阶段统计（多批次累加，不是覆盖）。
+func addRTTStats(tested, valid int) {
 	progressStateMu.Lock()
-	progressState.RTTTested = tested
-	progressState.RTTValid = valid
+	progressState.RTTTested += tested
+	progressState.RTTValid += valid
 	progressStateMu.Unlock()
 }
 
-// setSpeedStats 记录测速阶段统计（已测/达标）。
-func setSpeedStats(tested, qualified int) {
+// addSpeedStats 累加测速阶段统计（多轮累加）。
+func addSpeedStats(tested, qualified int) {
 	progressStateMu.Lock()
-	progressState.SpeedTested = tested
-	progressState.SpeedQualified = qualified
+	progressState.SpeedTested += tested
+	if qualified > progressState.SpeedQualified {
+		progressState.SpeedQualified = qualified
+	}
 	progressStateMu.Unlock()
 }
 

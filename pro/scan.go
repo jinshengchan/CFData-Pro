@@ -1505,7 +1505,7 @@ collect:
 	} else {
 		setScanProgress(fmt.Sprintf("RTT 测试完成，%d/%d 个 IP 有效%s", len(results), total, skipNote))
 	}
-	setRTTStats(total, len(results))
+	addRTTStats(total, len(results))
 	return kept
 }
 
@@ -1962,7 +1962,7 @@ func speedTestRound(cands []RTTResult, useTLS bool, target int, wantCount int,
 		}
 
 		setProgressState("speed", i+1, len(finalists))
-		setSpeedStats(i+1, pool.qualified(target))
+		addSpeedStats(1, pool.qualified(target))
 		if wantCount > 1 {
 			setScanProgress(fmt.Sprintf("正在测速 %d/%d：%s:%d (已找到 %d/%d 个达标)",
 				i+1, len(finalists), r.IP, r.Port, pool.qualified(target), wantCount))
