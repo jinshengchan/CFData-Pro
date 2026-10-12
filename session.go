@@ -387,6 +387,7 @@ func (s *appSession) applyBackgroundMessageLocked(msgType string, data interface
 		s.backgroundSnapshot.ResultCount = asInt(m["found"])
 		s.backgroundSnapshot.ScanSuccess = asInt(m["found"])
 		s.backgroundSnapshot.SpeedSuccess = asInt(m["found"])
+		s.backgroundSnapshot.SpeedQualified = asInt(m["found"])
 		s.updateProgressSnapshotLocked(phase, asInt(m["current"]), asInt(m["total"]), phase)
 	case "pro_complete":
 		s.backgroundSnapshot.Phase = "完成"
