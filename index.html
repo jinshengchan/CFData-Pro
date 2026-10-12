@@ -3761,7 +3761,7 @@
             card.classList.toggle('active', !!snapshot.running || isComplete);
             const title = isComplete ? `✅ ${snapshot.phase || '任务完成'}` : `🕘 ${snapshot.label || '后台任务运行中'}`;
             document.getElementById('backgroundStatusTitle').textContent = title;
-            const source = snapshot.params?.sourceURL || snapshot.params?.fileName || (snapshot.mode === 'official' ? '官方内置地址库' : '') || snapshot.params?.outFile || snapshot.params?.dc || '-';
+            const source = snapshot.params?.sourceURL || snapshot.params?.fileName || (snapshot.mode === 'official' ? '官方内置地址库' : '') || (snapshot.mode === 'pro' ? ('增强优选·' + (snapshot.params?.ipRanges ? '指定 IP 段' : '官方 IP 段列表') + (snapshot.params?.ports ? `（端口 ${snapshot.params.ports}）` : '')) : '') || snapshot.params?.outFile || snapshot.params?.dc || '-';
             document.getElementById('backgroundSource').textContent = source;
             const phaseText = snapshot.mode === 'pro'
                 ? ({ init: '准备中', rtt: 'RTT 测试中', recon: '扫描中', speed: '测速中', done: '完成' }[snapshot.phase] || snapshot.phase || '-')
